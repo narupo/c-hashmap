@@ -66,7 +66,9 @@ HashMap_Del(HashMap *self) {
     for (int32_t i = 0; i < HASH_MAP__NTABLE; i += 1) {
         HashMapNode *node = self->table[i];
         if (node) {
-            self->deleter(node->data);
+            if (self->deleter) {
+                self->deleter(node->data);
+            }
             HashMapNode_Del(node);
         }
     }
