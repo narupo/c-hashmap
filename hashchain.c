@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <assert.h>
 
 enum {
     HASH_MAP__NTABLE = 2,
@@ -136,6 +137,25 @@ error:
     return NULL;
 }
 
+void *
+HashMap_Get(HashMap *self, const char *key) {
+    long hash = create_hash(key);
+    hash %= HASH_MAP__NTABLE;
+
+    HashMapNode *node = self->table[hash];
+    if (!node) {
+        return NULL;
+    }
+
+    for (HashMapNode *cur = node; cur; cur = cur->next) {
+        if (strcmp(cur->key, key) == 0) {
+            return cur->data;
+        }
+    }
+
+    return NULL;
+}
+
 void 
 HashMap_Dump(const HashMap *self) {
     for (int32_t i = 0; i < HASH_MAP__NTABLE; i += 1) {
@@ -164,8 +184,38 @@ HashMap_Dump(const HashMap *self) {
     }
 }
 
+static void
+int_deleter(void *p) {
+    free(p);
+}
+
+static void
+test(void) {
+    HashMap *hashmap = HashMap_New();
+    assert(hashmap);
+    HashMap_SetDeleter(hashmap, int_deleter);
+
+    int *i;
+
+    i = calloc(1, sizeof(int));
+    *i = 1;
+    assert(HashMap_Set(hashmap, "a", i));
+
+    i = calloc(1, sizeof(int));
+    *i = 2;
+    assert(HashMap_Set(hashmap, "b", i));
+
+    i = HashMap_Get(hashmap, "a");
+    assert(i && *i == 1);
+    i = HashMap_Get(hashmap, "b");
+    assert(i && *i == 2);
+
+    HashMap_Del(hashmap);
+}
+
 int
 main(int argc, char *argv[]) {
+    test();
     HashMap *hashmap = HashMap_New();
     if (!hashmap) {
         return 1;
